@@ -16,3 +16,35 @@
                                                                                    
 # Package is called `singularitypro` on SDSC Expanse. Names vary across HPC systems.
 module load singularitypro
+
+# Fail the job if any stage fails (input_gen or retrieve_cs_data).
+set -euo pipefail
+
+# --- Hardcoded test input ---------------------------------------------------
+IMAGE="cs_data_tutorial.sif"    # Pulled by get_img.sh (sceccode/cs_data_tutorial)
+MODEL="Study 22.12 LF"
+PRODUCT="Site Info"
+FILTER="SITE_NAME=USC"
+OUTPUT_DIR="./out"
+TEMP_DIR="./tmp"
+# -----------------------------------------------------------------------------
+
+mkdir -p "$OUTPUT_DIR" "$TEMP_DIR"
+
+echo "Running request: model='$MODEL' product='$PRODUCT' filter='$FILTER'"
+
+# input_gen validates the request and writes the request JSON to stdout
+# (human-readable summary goes to stderr); retrieve_cs_data reads it from
+# stdin via '-i -', per the cs-data-tools docs:
+#   src/input_gen/run_input_gen.py -m "Study 22.12 LF" -p "Site Info" \
+#       --filter SITE_NAME=USC | src/retrieve_cs_data.py -i - -o ./out -t ./tmp
+singularity exec "$IMAGE" python3 src/input_gen/run_input_gen.py \
+    -m "$MODEL" \
+    -p "$PRODUCT" \
+    --filter "$FILTER" \
+  | singularity exec "$IMAGE" python3 src/retrieve_cs_data.py \
+      -i - \
+      -o "$OUTPUT_DIR" \
+      -t "$TEMP_DIR"
+
+echo "Done. Results are in $OUTPUT_DIR"
