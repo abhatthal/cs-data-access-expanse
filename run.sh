@@ -49,6 +49,6 @@ HOST_BINDS="--bind $PWD/$OUTPUT_DIR:$CONTAINER_HOME/output --bind $PWD/$TEMP_DIR
 #   src/input_gen/run_input_gen.py -m "Study 22.12 LF" -p "Site Info" \
 #       --filter SITE_NAME=USC | src/retrieve_cs_data.py -i - -o ./out -t ./tmp
 singularity exec $HOST_BINDS "$IMAGE" bash -c "cd $CONTAINER_HOME && python3 cs-data-tools/src/input_gen/run_input_gen.py -m '$MODEL' -p '$PRODUCT' --filter '$FILTER'" \
-  | singularity exec $HOST_BINDS "$IMAGE" bash -c "cd $CONTAINER_HOME && python3 cs-data-tools/src/retrieve_cs_data.py -i - -o $CONTAINER_HOME/output -t $CONTAINER_HOME/tmp"
+  | singularity exec $HOST_BINDS "$IMAGE" bash -c "cd $CONTAINER_HOME && python3 cs-data-tools/src/retrieve_cs_data.py -i - -o $CONTAINER_HOME/output -t $CONTAINER_HOME/tmp -c cs-data-tools/src/db_wrapper/carc.cfg"
 
 echo "Done. Results are in $OUTPUT_DIR"
