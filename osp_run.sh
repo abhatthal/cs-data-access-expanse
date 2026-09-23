@@ -12,7 +12,9 @@ module load singularitypro
 # Fail the job if any stage fails (input_gen or retrieve_cs_data).
 set -euo pipefail
 
-IMAGE="cs_data_tutorial.sif"    # Pulled by get_img.sh (sceccode/cs_data_tutorial)
+# Shared SIF image, pulled once by get_img.sh into the Quakeworx apps directory
+# (read-only squashfs; safe for concurrent jobs/users, so no per-user copy needed).
+IMAGE="/expanse/lustre/projects/usc143/qwxdev/apps/expanse/rocky8.8/cs-data-access/cs_data_tutorial.sif"
 CONTAINER_HOME="/home/cs_data_user"
 OUTPUT_DIR="./outputs"                          # persistent results (job dir)
 TEMP_DIR="/scratch/$USER/job_$SLURM_JOBID/tmp"  # node-local NVMe, purged at job end
