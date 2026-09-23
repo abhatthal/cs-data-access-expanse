@@ -118,7 +118,9 @@ echo "Running request with parameters: ${FORWARDED[*]:-}"
 IMAGE="/expanse/lustre/projects/usc143/qwxdev/apps/expanse/rocky8.8/cs-data-access/cs_data_tutorial.sif"
 CONTAINER_HOME="/home/cs_data_user"
 OUTPUT_DIR="./outputs"                          # persistent results (job dir)
-TEMP_DIR="/scratch/$USER/job_$SLURM_JOBID/tmp"  # node-local NVMe, purged at job end
+# Node-local NVMe scratch, purged at job end (overridable via the environment,
+# e.g. for local testing without a SLURM allocation).
+TEMP_DIR="${TEMP_DIR:-/scratch/$USER/job_$SLURM_JOBID/tmp}"
 
 mkdir -p "$OUTPUT_DIR" "$TEMP_DIR"
 
@@ -126,6 +128,29 @@ mkdir -p "$OUTPUT_DIR" "$TEMP_DIR"
 # read-only under singularity); the bind target is named "outputs" to match
 # the host directory name.
 HOST_BINDS="--bind $PWD/$OUTPUT_DIR:$CONTAINER_HOME/outputs --bind $TEMP_DIR:$CONTAINER_HOME/tmp"
+
+# The event file (-e) lives in the job directory, but the pipeline runs from
+# the container home, so a relative -e path would not resolve. Bind the file
+# into the container home and rewrite the -e argument to its container path.
+if [ -n "$EVENT_FILE" ]; then
+    case "$EVENT_FILE" in
+        /*) HOST_EVENT="$EVENT_FILE" ;;
+        *)  HOST_EVENT="$PWD/$EVENT_FILE" ;;
+    esac
+    if [ ! -f "$HOST_EVENT" ]; then
+        echo "ERROR: event file not found: $HOST_EVENT" >&2
+        exit 1
+    fi
+    EVENT_CONTAINER_PATH="$CONTAINER_HOME/$(basename "$EVENT_FILE")"
+    HOST_BINDS="$HOST_BINDS --bind $HOST_EVENT:$EVENT_CONTAINER_PATH"
+    idx=0
+    for i in "${!FORWARDED[@]}"; do
+        if [ "${FORWARDED[$i]}" = "-e" ]; then
+            FORWARDED[$((idx + 1))]="$EVENT_CONTAINER_PATH"
+        fi
+        idx=$((idx + 1))
+    done
+fi
 
 # Quote each sanitized argument with printf %q so values with spaces survive
 # the nested bash -c inside the container.
